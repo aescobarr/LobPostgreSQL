@@ -1,0 +1,3 @@
+/dist/
+build/classes/lobpostgresql/config.properties
+src/lobpostgresql/config.properties

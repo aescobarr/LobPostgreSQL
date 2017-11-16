@@ -11,9 +11,12 @@ import java.awt.image.BufferedImage;
 import java.awt.image.ConvolveOp;
 import java.awt.image.Kernel;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -21,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -35,9 +39,18 @@ public class LobPostgreSQL {
     private Connection connection;
     
         
-    public HashMap<String,String> getMaunaloaHetznerParams(){
+    public static HashMap<String,String> getMaunaloaHetznerParams() throws FileNotFoundException, IOException{
         HashMap<String,String> params = new HashMap<String, String>();
+        Properties prop = new Properties();
+        InputStream input = null;
+        input = new FileInputStream("/home/agusti/dev/java/LobPostgreSQL/src/lobpostgresql/config.properties");
+        prop.load(input);
         /* put some values in params */
+        params.put("hostname", prop.getProperty("hostname"));
+        params.put("port", prop.getProperty("port"));
+        params.put("dbname", prop.getProperty("dbname"));
+        params.put("username", prop.getProperty("username"));
+        params.put("password", prop.getProperty("password"));
         return params;
     }
     
@@ -77,20 +90,31 @@ public class LobPostgreSQL {
     public static void main(String[] args) {
         HashMap<String,Integer> codis = new HashMap<String, Integer>();
         int totalRecords = 1103;
-        int chunkSize = 10;
+        int chunkSize = 200;
         boolean keepLooping = true;
         int limit = chunkSize;
         int offset = 0;
+        
+        HashMap params = null;
+                
+        try {
+            params = LobPostgreSQL.getMaunaloaHetznerParams();
+        } catch (IOException ex) {
+            Logger.getLogger(LobPostgreSQL.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("There's a problem with the parameters file, correct and start again");
+            System.exit(0);
+        }
+        
         while(keepLooping){
             System.out.println("Limit " + limit);
-            System.out.println("Offset " + offset);
+            System.out.println("Offset " + offset);                        
             LobPostgreSQL op = new LobPostgreSQL();
-            op.openConnection(op.getMaunaloaHetznerParams());
+            op.openConnection(params);
             op.chunkPerformSelect(codis,limit,offset);
             op.closeConnection();
             op = null;
             offset = offset + limit;            
-            if (offset > totalRecords) keepLooping = false;
+            if (offset > totalRecords) keepLooping = false;            
         }                
         //op.createThumbnails();
     }
@@ -151,7 +175,7 @@ public class LobPostgreSQL {
                         codis.put(codi, numcodis);
                         codi = codi + "_" + numcodis;
                     }
-                    String path = "F:\\FotosAfectacio2017\\" + codi + ".jpg";
+                    String path = "/home/agusti/dev/java/Fotos2017/" + codi + ".jpg";
                     fos = new FileOutputStream(path);
                     fos.write(imgBytes);
                     fos.close();
